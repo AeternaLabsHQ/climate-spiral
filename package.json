@@ -1,0 +1,10 @@
+{
+  "name": "klimaspirale",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test scripts/sync-data.test.mjs scripts/fetch-co2.test.mjs",
+    "sync": "node scripts/sync-data.mjs",
+    "sync:check": "node scripts/sync-data.mjs --check"
+  }
+}

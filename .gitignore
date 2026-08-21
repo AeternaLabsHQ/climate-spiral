@@ -1,0 +1,64 @@
+# Temporäre Render-/Capture-Artefakte der HyperFrames-Läufe
+work-*/
+
+# Installierte Agent-Skills (vendored Tooling, reproduzierbar via skills-lock.json + `npx skills add`)
+agent/
+.agents/
+
+# Node
+node_modules/
+
+# OS / Editor
+.DS_Store
+*.swp
+*~
+
+# Brainstorming-Mockups (Visual Companion)
+.superpowers/
+
+# Wrangler-Cache (lokal)
+.wrangler/
+
+# Deploy tooling lives in private/deploy/ now (removed from the public repo, see
+# "chore: remove deploy tooling from the repo, hosting is operator-specific"). Kept as a
+# no-op safety net in case a wrangler.jsonc ever ends up at the repo root again.
+wrangler.jsonc
+
+# Gerenderte Endclips im Wurzelverzeichnis: liegen ab 2026-08-13 in R2 unter
+# media.aeternalabs.io und werden nicht mehr versioniert (~450 MB). Das Publish-Tooling
+# dafuer liegt in private/deploy/ (operator-spezifisch, nicht Teil dieses Repos).
+#
+# Bewusst nur die Wurzel (`/*.mp4`, nicht `*.mp4`): weitere MP4-Ausnahmen
+# existierten frueher fuer eine inzwischen entfernte Regional-Variante, sind aber seit dem
+# Publish-Prep (2026-08) nach private/videos/ verschoben (siehe dort).
+/*.mp4
+media/
+!docs/media/
+
+# Interne Logs (Publish-Prep, 2026-08)
+logs/
+
+# Temporaere Frame-Extrakte der Render-Verifikation
+.verify/
+
+# Privater Arbeitsbereich (nie veroeffentlichen)
+/private/
+
+# Render-Ausgaben generisch (Root-/*.mp4-Regel oben greift nur im Root)
+renders/
+
+# Screenshots im Root
+/*.png
+
+# Windows-Kram
+Thumbs.db
+desktop.ini
+
+# Lokale Claude-Einstellungen
+.claude/settings.local.json
+
+# Skill-Arbeitsdokumente (Plaene/Specs) — lokal, nie veroeffentlichen
+docs/superpowers/
+
+# Local Claude Code tooling
+.claude/

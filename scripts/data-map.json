@@ -1,0 +1,12 @@
+{
+  "spiral-square":      { "src": "data/global_gistemp.json",  "format": "V", "dateStamp": true },
+  "spiral-square-en":   { "src": "data/global_gistemp.json",  "format": "V", "dateStamp": true },
+  "spiral-portrait":    { "src": "data/global_gistemp.json",  "format": "V", "dateStamp": true },
+  "spiral-portrait-en": { "src": "data/global_gistemp.json",  "format": "V", "dateStamp": true },
+  "klimaspirale_interaktiv.html": {
+    "sources": [
+      { "src": "data/global_gistemp.json",   "format": "INTERACTIVE", "dateMarker": "DATA_RETRIEVED" },
+      { "src": "data/co2_lawdome_mlo.json",  "format": "CO2",         "dateMarker": "CO2_RETRIEVED" }
+    ]
+  }
+}

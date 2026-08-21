@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this project, please cite it as below."
+title: "Climate Spiral (interactive 3D visualization, NASA GISTEMP v4)"
+authors:
+  - name: "Aeterna Labs"
+url: "https://climate.aeternalabs.io"
+repository-code: "https://github.com/AeternaLabsHQ/climate-spiral"
+version: "1.0.0"
+date-released: "2026-08-21"
+license:
+  - MIT
+  - CC-BY-4.0
+keywords:
+  - climate
+  - visualization
+  - GISTEMP
+  - climate-change
+  - data-visualization

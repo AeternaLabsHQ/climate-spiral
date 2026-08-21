@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1620, height=2880" />
+    <title>Climate Spiral 1880–2026</title>
+    <script src="vendor/three.min.js"></script>
+    <script src="vendor/LineSegmentsGeometry.js"></script>
+    <script src="vendor/LineSegments2.js"></script>
+    <script src="vendor/LineGeometry.js"></script>
+    <script src="vendor/Line2.js"></script>
+    <script src="vendor/LineMaterial.js"></script>
+    <script src="vendor/gsap.min.js"></script>
+    <style>
+      /* Vendored webfonts (served from this project's fonts/ folder at render time).
+         DM Sans -> UI / titles / captions / month labels;  IBM Plex Mono -> numeric readouts. */
+      @font-face{font-family:'DM Sans';font-style:normal;font-weight:100 1000;font-display:block;src:url('fonts/dm-sans-latin.woff2') format('woff2');}
+      @font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:block;src:url('fonts/ibm-plex-mono-400-latin.woff2') format('woff2');}
+      @font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:block;src:url('fonts/ibm-plex-mono-500-latin.woff2') format('woff2');}
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1620px; height: 2880px; overflow: hidden; background: #000; }
+      #root { position: relative; width: 1620px; height: 2880px; overflow: hidden; background: #000; }
+      #three-layer { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+      .overlay {
+        position: absolute; inset: 0; display: flex; pointer-events: none;
+        font-family: "DM Sans", system-ui, "Helvetica Neue", Arial, sans-serif;
+      }
+      #title { align-items: flex-start; justify-content: center; }
+      #title .inner {
+        margin-top: 90px; color: #e8ebef; font-size: 66px; font-weight: 700;
+        letter-spacing: 0.5px; text-align: center; opacity: 0;
+        text-shadow: 0 2px 12px rgba(0,0,0,0.85), 0 0 4px rgba(0,0,0,0.9);
+      }
+      #caption { align-items: flex-end; justify-content: center; }
+      #caption .inner {
+        margin-bottom: 84px; color: #8b939d; font-size: 40px; font-weight: 500;
+        letter-spacing: 1px; text-align: center; opacity: 0;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.85), 0 0 4px rgba(0,0,0,0.9);
+      }
+      #brand { align-items: flex-end; justify-content: center; }
+      #brand .inner {
+        margin-bottom: 34px; display: flex; align-items: baseline;
+        justify-content: center; gap: 18px; opacity: 0.9;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.85);
+      }
+      #brand .mark { font-family: "DM Sans", sans-serif; color: #d8a24a; font-size: 30px; font-weight: 600; letter-spacing: 4px; }
+      #brand .sep  { font-family: "DM Sans", sans-serif; color: #5a6068; font-size: 26px; font-weight: 500; }
+      #brand .url  { font-family: "IBM Plex Mono", ui-monospace, monospace; color: #78716c; font-size: 26px; font-weight: 400; letter-spacing: 1.5px; }
+      #year { align-items: center; justify-content: center; }
+      #year .inner {
+        font-family: "IBM Plex Mono", ui-monospace, monospace;
+        color: #ffffff; font-size: 168px; font-weight: 500; letter-spacing: 2px;
+        opacity: 0; font-variant-numeric: tabular-nums;
+        text-shadow: 0 0 8px rgba(0,0,0,0.9), 0 6px 34px rgba(0,0,0,0.95);
+      }
+      #endlabel { align-items: center; justify-content: center; flex-direction: column; }
+      #endlabel .inner {
+        display: flex; flex-direction: column; align-items: center; opacity: 0;
+        padding: 56px 150px;
+        background: radial-gradient(ellipse 62% 62% at 50% 50%,
+          rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.5) 42%, rgba(0,0,0,0) 76%);
+      }
+      #endlabel .big {
+        font-family: "IBM Plex Mono", ui-monospace, monospace;
+        color: #ffffff; font-size: 150px; font-weight: 500; letter-spacing: 1px;
+        font-variant-numeric: tabular-nums;
+        text-shadow: 0 0 6px rgba(0,0,0,0.95), 0 6px 40px rgba(0,0,0,0.98);
+      }
+      #endlabel .sub {
+        font-family: "IBM Plex Mono", ui-monospace, monospace;
+        color: #ffffff; font-size: 46px; font-weight: 500; letter-spacing: -0.5px; white-space: nowrap;
+        margin-top: 22px; text-align: center;
+        text-shadow: 0 0 5px rgba(0,0,0,1), 0 0 18px rgba(0,0,0,0.98), 0 4px 30px rgba(0,0,0,1);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="60"
+      data-fps="30"
+      data-width="1620"
+      data-height="2880"
+      data-lang="en"
+    >
+      <canvas id="three-layer"></canvas>
+
+      <div id="title" class="overlay clip" data-start="0" data-duration="60" data-track-index="1">
+        <div class="inner">Globale Temperaturabweichung 1880–2026</div>
+      </div>
+      <div id="caption" class="overlay clip" data-start="0" data-duration="60" data-track-index="2">
+        <div class="inner">NASA GISTEMP v4</div>
+      </div>
+      <div id="brand" class="overlay clip" data-start="0" data-duration="60" data-track-index="5">
+        <div class="inner">
+          <span class="mark">AETERNA LABS</span>
+          <span class="sep">&middot;</span>
+          <span class="url">climate.aeternalabs.io</span>
+        </div>
+      </div>
+      <div id="year" class="overlay clip" data-start="0" data-duration="60" data-track-index="3">
+        <div class="inner">1880</div>
+      </div>
+      <div id="endlabel" class="overlay clip" data-start="0" data-duration="60" data-track-index="4">
+        <div class="inner">
+          <div class="big">+1,12 &deg;C</div>
+          <div class="sub">Mai 2026</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Single paused GSAP timeline drives only the DOM overlay opacities.
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#title .inner",   { opacity: 0 }, { opacity: 1, duration: 1.6, ease: "power2.out" }, 0.3);
+      tl.fromTo("#caption .inner", { opacity: 0 }, { opacity: 1, duration: 1.6, ease: "power2.out" }, 0.6);
+      tl.fromTo("#year .inner",    { opacity: 0 }, { opacity: 1, duration: 1.0, ease: "power2.out" }, 1.8);
+      tl.to("#year .inner",        { opacity: 0, duration: 1.4, ease: "power2.in" }, 48.0);
+      tl.fromTo("#endlabel .inner",{ opacity: 0 }, { opacity: 1, duration: 1.6, ease: "power2.out" }, 53.0);
+      window.__timelines["main"] = tl;
+    </script>
+
+    <script>
+      if (THREE.ColorManagement) THREE.ColorManagement.legacyMode = true; // raw sRGB colors
+
+      // ---- data retrieval date — managed by scripts/sync-data.mjs (data/meta.json) ----
+      const DATA_RETRIEVED = "2026-08-13";
+
+      // ---- monthly anomaly values (deg C, base 1951-1980), 1880-01 .. latest ----
+      // index i -> year = 1880 + floor(i/12), month = (i%12)+1
+      const V = [-0.19,-0.25,-0.1,-0.17,-0.1,-0.22,-0.19,-0.11,-0.15,-0.24,-0.23,-0.19,-0.2,-0.16,0.02,0.04,0.06,-0.19,0.01,-0.04,-0.16,-0.22,-0.19,-0.07,0.15,0.13,0.04,-0.16,-0.14,-0.23,-0.17,-0.08,-0.15,-0.24,-0.17,-0.37,-0.3,-0.37,-0.13,-0.18,-0.18,-0.07,-0.08,-0.14,-0.22,-0.11,-0.24,-0.12,-0.13,-0.08,-0.37,-0.4,-0.34,-0.35,-0.31,-0.28,-0.27,-0.25,-0.34,-0.31,-0.59,-0.34,-0.27,-0.42,-0.45,-0.44,-0.34,-0.31,-0.28,-0.23,-0.24,-0.1,-0.44,-0.51,-0.43,-0.28,-0.24,-0.35,-0.19,-0.31,-0.24,-0.28,-0.28,-0.25,-0.72,-0.57,-0.36,-0.35,-0.31,-0.25,-0.26,-0.36,-0.26,-0.35,-0.26,-0.33,-0.34,-0.37,-0.42,-0.21,-0.22,-0.17,-0.11,-0.16,-0.12,0.01,0.02,-0.05,-0.1,0.16,0.06,0.09,-0.01,-0.1,-0.08,-0.21,-0.24,-0.26,-0.34,-0.3,-0.42,-0.45,-0.41,-0.3,-0.39,-0.25,-0.28,-0.39,-0.36,-0.25,-0.44,-0.32,-0.34,-0.46,-0.18,-0.27,-0.16,-0.21,-0.18,-0.17,-0.15,-0.22,-0.32,-0.04,-0.29,-0.12,-0.4,-0.33,-0.23,-0.22,-0.31,-0.27,-0.17,-0.14,-0.42,-0.39,-0.81,-0.57,-0.22,-0.28,-0.34,-0.25,-0.14,-0.25,-0.22,-0.18,-0.19,-0.32,-0.53,-0.29,-0.23,-0.45,-0.31,-0.41,-0.24,-0.24,-0.28,-0.23,-0.26,-0.21,-0.41,-0.43,-0.33,-0.22,-0.27,-0.21,-0.17,-0.17,-0.12,-0.1,-0.17,-0.15,-0.23,-0.13,-0.26,-0.31,-0.16,-0.11,-0.03,-0.05,-0.07,0.06,-0.05,-0.05,-0.15,-0.17,-0.14,-0.03,-0.02,-0.12,-0.03,-0.09,-0.08,-0.13,-0.19,-0.21,-0.04,-0.31,-0.51,-0.3,-0.3,-0.19,-0.22,-0.27,-0.22,-0.35,-0.38,-0.24,-0.17,-0.38,-0.36,-0.2,-0.23,-0.31,-0.15,-0.08,-0.04,-0.04,0.12,-0.27,-0.37,-0.06,0,-0.09,-0.09,-0.1,-0.13,-0.09,-0.05,0.09,-0.07,-0.07,-0.23,-0.11,0.06,-0.03,-0.15,-0.12,-0.14,-0.2,-0.22,-0.29,-0.17,-0.28,-0.17,-0.09,-0.27,-0.27,-0.32,-0.32,-0.28,-0.3,-0.29,-0.3,-0.37,-0.43,-0.25,-0.06,-0.24,-0.41,-0.4,-0.43,-0.35,-0.45,-0.49,-0.46,-0.42,-0.51,-0.64,-0.59,-0.51,-0.51,-0.52,-0.48,-0.51,-0.49,-0.56,-0.39,-0.18,-0.34,-0.35,-0.6,-0.22,-0.33,-0.29,-0.28,-0.26,-0.2,-0.19,-0.24,-0.07,-0.13,-0.28,-0.3,-0.18,-0.05,-0.26,-0.2,-0.23,-0.2,-0.28,-0.2,-0.38,-0.15,-0.43,-0.51,-0.27,-0.37,-0.46,-0.42,-0.35,-0.34,-0.34,-0.23,-0.47,-0.48,-0.45,-0.32,-0.56,-0.45,-0.38,-0.38,-0.35,-0.46,-0.35,-0.44,-0.52,-0.49,-0.73,-0.46,-0.55,-0.59,-0.55,-0.52,-0.45,-0.34,-0.39,-0.4,-0.32,-0.56,-0.43,-0.42,-0.51,-0.43,-0.35,-0.39,-0.35,-0.37,-0.39,-0.41,-0.57,-0.68,-0.63,-0.59,-0.61,-0.54,-0.52,-0.51,-0.43,-0.44,-0.41,-0.27,-0.22,-0.23,-0.28,-0.16,-0.39,-0.19,-0.22,-0.25,-0.43,-0.55,-0.58,-0.58,-0.4,-0.44,-0.41,-0.46,-0.43,-0.4,-0.45,-0.46,-0.37,-0.33,-0.35,-0.32,-0.21,-0.04,0.03,-0.11,-0.25,-0.3,-0.22,-0.26,-0.25,-0.17,-0.18,-0.04,-0.17,-0.05,-0.22,-0.05,-0.1,0.06,-0.06,-0.23,-0.13,-0.22,-0.2,-0.25,-0.13,-0.21,-0.14,-0.16,-0.29,-0.31,-0.36,-0.5,-0.37,-0.28,-0.36,-0.33,-0.47,-0.82,-0.57,-0.62,-0.64,-0.55,-0.56,-0.44,-0.25,-0.23,-0.23,-0.44,-0.35,-0.68,-0.48,-0.36,-0.27,-0.45,-0.44,-0.37,-0.32,-0.32,-0.18,-0.06,-0.12,-0.3,-0.21,-0.24,-0.22,-0.13,-0.29,-0.37,-0.3,-0.34,-0.26,-0.2,-0.42,-0.43,-0.26,-0.28,-0.13,-0.25,-0.27,-0.36,-0.31,-0.27,-0.22,-0.27,-0.28,-0.47,-0.05,-0.18,-0.23,-0.3,-0.3,-0.27,-0.15,-0.26,-0.19,-0.03,-0.15,-0.18,-0.34,-0.45,-0.15,-0.23,-0.33,-0.31,-0.27,-0.33,-0.35,-0.31,-0.14,-0.2,-0.28,-0.4,-0.34,-0.42,-0.34,-0.29,-0.31,-0.34,-0.31,-0.13,-0.03,-0.04,-0.23,-0.23,-0.09,-0.3,-0.18,-0.26,-0.29,-0.36,-0.32,-0.35,-0.21,-0.43,-0.38,-0.39,-0.27,-0.26,-0.3,-0.33,-0.27,-0.21,-0.2,-0.18,0.05,0.06,0.21,0.02,0.11,-0.13,-0.23,-0.26,-0.27,-0.13,-0.14,-0.11,-0.07,-0.3,-0.27,-0.18,-0.39,-0.31,-0.26,-0.28,-0.19,-0.24,-0.13,-0.01,-0.06,-0.33,-0.03,-0.09,-0.25,-0.29,-0.3,-0.39,-0.19,-0.22,-0.21,-0.19,-0.1,-0.16,-0.45,-0.58,-0.33,-0.41,-0.38,-0.43,-0.37,-0.32,-0.25,-0.15,-0.12,-0.55,-0.31,-0.27,-0.11,-0.25,-0.24,-0.22,-0.21,-0.15,-0.15,-0.11,0.17,-0.06,-0.1,-0.21,-0.11,-0.23,-0.2,-0.08,-0.03,-0.03,-0.06,0.06,-0.06,-0.05,0.15,-0.17,-0.18,-0.06,-0.18,-0.29,-0.25,-0.21,-0.1,-0.09,-0.28,-0.27,-0.24,-0.3,-0.3,-0.25,-0.29,-0.34,-0.21,-0.23,-0.29,-0.25,-0.31,-0.45,-0.21,-0.03,-0.29,-0.31,-0.1,-0.15,-0.1,-0.12,-0.15,-0.06,0.03,-0.03,-0.34,0.14,-0.14,-0.37,-0.29,-0.27,-0.21,-0.22,-0.21,-0.06,-0.26,-0.17,-0.28,-0.38,-0.21,-0.2,-0.16,-0.22,-0.1,-0.13,-0.09,-0.03,0.01,-0.01,-0.07,0.03,-0.2,-0.16,-0.06,-0.05,-0.03,0.01,0.09,0.08,0.08,-0.08,0.08,0.04,0.1,0.06,-0.1,-0.17,-0.09,-0.05,0.01,0.14,0.07,-0.13,-0.05,-0.06,-0.18,-0.1,-0.04,-0.07,-0.05,-0.06,-0.07,-0.04,0.07,0.42,-0.01,0.08,0.09,0.17,0.1,0.11,0.12,0.06,0.15,0.1,0.16,0.31,0.17,0.3,0.09,0.15,0.16,0.13,0.21,0.14,0.02,0.35,0.22,0.21,0.29,0.02,0.05,0.09,0.11,0.04,0,-0.04,-0.03,0.01,0.09,0.12,-0.01,0.17,-0.04,0.11,0.06,-0.05,0.08,0.01,0.05,0.23,0.2,0.23,0.35,0.24,0.26,0.19,0.18,0.15,0.17,0.18,0.28,0.27,0.11,0.04,0.1,0.01,0.06,0.2,0.06,0.01,0.04,0.26,0.2,0.19,0.07,-0.07,0.15,0.03,0.01,0.06,-0.07,-0.21,-0.12,-0.2,-0.07,-0.08,-0.05,-0.31,-0.07,-0.08,0.07,0.06,-0.01,-0.02,-0.04,-0.07,-0.12,0.08,0.03,-0.13,0.06,-0.15,-0.24,-0.12,-0.01,-0.05,-0.11,-0.11,-0.14,-0.05,-0.12,-0.23,0.07,-0.14,-0.02,-0.11,-0.1,-0.27,-0.13,-0.13,-0.14,-0.06,-0.1,-0.18,-0.26,-0.27,-0.07,-0.21,-0.11,-0.05,-0.08,-0.16,-0.11,-0.2,-0.34,-0.22,-0.34,-0.41,-0.2,-0.14,0,-0.07,-0.01,0.06,0.05,0.08,-0.01,0.16,0.11,0.11,-0.08,0.03,-0.03,-0.03,0.04,0.05,0.07,0,-0.13,-0.02,0.07,0.15,0.11,0.19,0.11,0.12,0.01,0.05,0.04,0.08,-0.03,0.05,-0.25,-0.1,-0.15,-0.14,-0.2,-0.19,-0.19,-0.17,-0.1,-0.02,0.08,-0.18,0.13,-0.16,-0.32,-0.22,-0.2,-0.13,-0.11,0.02,-0.11,-0.05,-0.25,-0.28,-0.13,-0.24,-0.21,-0.28,-0.29,-0.15,-0.09,-0.26,-0.19,-0.23,-0.15,-0.07,-0.09,-0.03,-0.05,0,0.09,0.15,0.02,0.15,0.08,0.01,0.08,0.15,0.39,0.22,0.08,0.01,0.06,-0.09,0.05,-0.05,-0.03,0.04,0.02,0.01,0.08,0.07,0.18,0.16,0.04,0.03,0.03,-0.01,-0.07,-0.07,-0.08,-0.01,0,0.13,-0.35,-0.15,-0.08,-0.04,-0.04,0.02,0.07,0.06,-0.11,0.19,0.07,0.19,0.09,0.13,0.12,0.11,0.01,0.01,0.08,0,0.03,-0.16,0.05,0.15,0.1,0.05,-0.06,0.03,0.02,-0.01,0,0.01,0.06,-0.03,-0.03,0.18,-0.14,-0.07,-0.06,0.05,0.06,0.22,0.17,0.15,0.15,-0.03,-0.09,-0.1,-0.21,-0.32,-0.25,-0.04,-0.04,-0.22,-0.29,-0.31,-0.21,-0.3,-0.08,-0.17,-0.13,-0.19,-0.12,-0.08,-0.13,-0.04,-0.15,-0.05,-0.06,-0.08,-0.19,-0.04,0.03,-0.13,-0.12,0.01,0.08,-0.08,-0.03,-0.17,-0.01,-0.02,-0.07,-0.21,0.05,-0.05,0.12,-0.08,0.02,0.01,-0.06,0.09,-0.05,-0.05,-0.26,-0.14,0.21,-0.05,-0.14,-0.09,-0.13,-0.08,-0.19,0.09,-0.05,-0.14,-0.11,-0.18,0.01,0.17,0.18,0.03,-0.04,0.04,0.08,0.09,0.12,0.24,0.08,0.22,0.06,0.05,-0.03,-0.02,0.02,-0.1,0.13,0.03,0.02,-0.12,-0.02,-0.15,-0.18,-0.07,-0.05,-0.16,-0.08,-0.01,-0.05,-0.04,-0.07,-0.08,-0.22,-0.18,0.03,0,-0.03,0.04,0.01,0.16,0.02,0.08,0.02,0.18,0.29,0.32,0.29,0.27,0.23,0.19,0.13,0.05,0.09,0.1,0.04,-0.07,-0.1,-0.27,-0.05,-0.11,-0.04,-0.05,-0.03,0.1,-0.08,-0.06,-0.08,-0.08,0.1,0.08,0.13,0.04,0.16,-0.01,-0.01,-0.17,-0.02,-0.11,-0.17,-0.17,-0.03,-0.06,-0.22,-0.07,-0.2,-0.12,-0.1,-0.12,-0.06,-0.24,-0.06,0.11,0.19,0.23,0.24,0.26,0.33,0.27,0.2,0.18,0.02,0.03,0.16,0.03,0.06,0.1,0.19,0.17,0.09,-0.01,0.04,-0.14,0.06,0.03,0.14,0.08,0.08,-0.1,0.19,0.15,0.03,0.14,0.04,0.17,0.25,0.26,0.28,0.48,0.29,0.39,0.29,0.3,0.35,0.2,0.22,0.18,0.21,0.13,0.3,0.21,0.53,0.42,0.48,0.32,0.25,0.29,0.32,0.35,0.15,0.12,0.23,0.41,0.05,0.15,0.03,0.15,0.18,0.06,0.14,0.03,0.14,0.13,0.18,0.43,0.53,0.43,0.42,0.28,0.34,0.23,0.18,0.36,0.37,0.17,0.3,0.17,0.31,0.14,0.26,0.06,0.33,0.02,0.19,0.19,0.21,0.13,0.07,-0.04,0.22,-0.04,0.17,0.12,0.14,0.15,0.04,0.17,0.13,0.12,0.05,0.14,0.26,0.37,0.3,0.22,0.21,0.12,0.11,0.16,0.03,0.15,0.1,0.13,0.32,0.43,0.18,0.24,0.26,0.35,0.4,0.25,0.35,0.33,0.29,0.46,0.57,0.44,0.51,0.43,0.44,0.4,0.33,0.39,0.37,0.38,0.12,0.29,0.12,0.3,0.36,0.29,0.18,0.15,0.35,0.33,0.34,0.29,0.2,0.37,0.41,0.44,0.8,0.56,0.45,0.37,0.46,0.34,0.23,0.44,0.46,0.4,0.42,0.5,0.35,0.51,0.34,0.53,0.48,0.39,0.44,0.29,0.3,0.32,0.48,0.4,0.48,0.27,0.31,0.26,0.09,0.08,-0.01,0.07,0.03,0.22,0.34,0.37,0.36,0.28,0.28,0.23,0.25,0.11,0.11,0.24,0.03,0.18,0.26,0.02,0.29,0.41,0.28,0.43,0.3,0.22,0.31,0.43,0.44,0.39,0.52,0.79,0.46,0.47,0.27,0.43,0.45,0.45,0.33,0.46,0.45,0.26,0.24,0.46,0.32,0.33,0.27,0.25,0.36,0.49,0.26,0.22,0.42,0.37,0.32,0.41,0.52,0.33,0.34,0.55,0.34,0.41,0.52,0.61,0.65,0.59,0.58,0.88,0.63,0.63,0.68,0.77,0.66,0.65,0.42,0.42,0.43,0.54,0.48,0.64,0.33,0.32,0.26,0.36,0.39,0.31,0.39,0.34,0.37,0.4,0.25,0.56,0.55,0.56,0.36,0.4,0.39,0.43,0.39,0.27,0.3,0.28,0.45,0.44,0.55,0.5,0.57,0.52,0.59,0.48,0.52,0.5,0.72,0.55,0.77,0.78,0.88,0.58,0.64,0.53,0.61,0.53,0.64,0.54,0.59,0.44,0.75,0.58,0.6,0.55,0.6,0.48,0.58,0.64,0.62,0.72,0.53,0.75,0.58,0.72,0.63,0.61,0.37,0.44,0.26,0.45,0.5,0.61,0.73,0.5,0.75,0.6,0.74,0.67,0.63,0.65,0.61,0.6,0.72,0.76,0.74,0.68,0.56,0.74,0.63,0.47,0.48,0.66,0.54,0.71,0.66,0.71,0.73,0.79,1.01,0.7,0.71,0.77,0.69,0.61,0.6,0.6,0.61,0.59,0.59,0.5,0.3,0.38,0.75,0.54,0.5,0.49,0.6,0.45,0.61,0.67,0.69,0.54,0.65,0.53,0.53,0.61,0.65,0.64,0.74,0.69,0.72,0.65,0.8,0.67,0.75,0.84,0.92,0.85,0.75,0.68,0.63,0.67,0.63,0.71,0.82,0.45,0.52,0.48,0.66,0.64,0.53,0.63,0.71,0.75,0.56,0.65,0.59,0.6,0.47,0.48,0.57,0.73,0.78,0.64,0.59,0.66,0.72,0.8,0.78,0.53,0.71,0.62,0.67,0.53,0.6,0.69,0.6,0.71,0.77,0.69,0.83,0.7,0.76,0.55,0.78,0.81,0.86,0.67,0.58,0.84,0.88,0.8,0.67,0.79,0.86,0.91,0.96,0.75,0.8,0.81,0.73,0.8,0.84,1.08,1.06,1.17,1.18,1.36,1.35,1.09,0.96,0.81,0.84,1.02,0.9,0.87,0.91,0.86,1.02,1.13,1.16,0.93,0.91,0.71,0.82,0.87,0.74,0.88,0.87,0.93,0.82,0.85,0.88,0.88,0.81,0.77,0.83,0.78,0.8,1.02,0.83,0.93,0.93,0.96,1.17,1,0.86,0.9,0.94,0.95,0.93,1,0.99,1.12,1.18,1.24,1.18,1.12,0.99,0.91,0.89,0.86,0.96,0.87,1.09,0.8,0.81,0.64,0.89,0.76,0.79,0.84,0.92,0.81,0.92,0.98,0.92,0.88,0.91,0.89,1.04,0.83,0.84,0.92,0.94,0.94,0.88,0.97,0.73,0.8,0.88,0.97,1.23,0.99,0.94,1.08,1.19,1.19,1.48,1.35,1.4,1.35,1.25,1.44,1.39,1.32,1.16,1.24,1.2,1.3,1.21,1.35,1.3,1.27,1.38,1.26,1.37,1.24,1.08,1.07,1.02,1.18,1.25,1.19,1.21,1.06,1.08,1.24,1.32,1.17,1.13,1.18,1.23];
+      const N = V.length;
+
+      // ---- config ----
+      const root = document.getElementById("root");
+      const W = +root.dataset.width, H_PX = +root.dataset.height;
+      const DURATION = +root.dataset.duration;       // seconds
+      const LANG = (root.dataset.lang === "en") ? "en" : "de";
+      const PORTRAIT = H_PX > W * 1.2;
+
+      // Build-time variant switch (deterministic; no runtime toggle). Flipped per output by the render orchestration.
+      const RENDER_MODE = "cyl15"; // "cyl15" | "paris" — flipped by render orchestration
+      const PARIS_OFFSET = 0.19;    // GISS 1951-1980 baseline -> 1850-1900 pre-industrial = +0.19 °C; Paris 1.5/2.0 sit this much further IN
+
+      const OFFSET = 1.2;            // radius offset: rho(a) = a + OFFSET
+      const HFUN = 8.0;             // funnel height (scene units)
+      const rho = (a) => a + OFFSET;
+
+      // Kick off webfont fetches early so the deterministic render engine (which waits for
+      // document.fonts.ready before capturing) has them loaded before any text sprite is drawn.
+      if (document.fonts && document.fonts.load) {
+        document.fonts.load('700 66px "DM Sans"');
+        document.fonts.load('600 60px "DM Sans"');
+        document.fonts.load('500 54px "IBM Plex Mono"');
+        document.fonts.load('400 28px "IBM Plex Mono"');
+      }
+
+      // beat timeline (normalized t in [0,1])
+      const T_INTRO = 0.03;         // rings/labels faded in
+      const T_BUILD_END = 0.80;     // 2D spiral fully drawn
+      const T_TILT_END = 0.87;      // funnel + camera tilt complete (earlier -> longer hold/rotation)
+      const BUILD_DECAY = 1.7;      // >1 => recent years (post-2000) play slower
+
+      // ---- math helpers ----
+      const clamp01 = (x) => x < 0 ? 0 : x > 1 ? 1 : x;
+      const lerp = (a, b, u) => a + (b - a) * u;
+      const easeInOut = (x) => { x = clamp01(x); return x < 0.5 ? 2*x*x : 1 - Math.pow(-2*x+2,2)/2; };
+      const DEG = Math.PI / 180;
+
+      // ---- dynamic stats + i18n ----
+      const lastIdx = N - 1, lastVal = V[lastIdx];
+      const lastYear = 1880 + Math.floor(lastIdx / 12), lastMonth = (lastIdx % 12) + 1;
+      let peakIdx = 0; for (let i = 1; i < N; i++) if (V[i] > V[peakIdx]) peakIdx = i;
+      const peakVal = V[peakIdx], peakYear = 1880 + Math.floor(peakIdx / 12), peakMonth = (peakIdx % 12) + 1;
+      const startYear = 1880, endYear = lastYear;
+      const DSEP = LANG === "de" ? "," : ".";
+      const DOT = "  ·  ";
+      const num = (v, d) => v.toFixed(d).replace(".", DSEP);
+      const signed = (v, d) => (v >= 0 ? "+" : "−") + num(Math.abs(v), d);
+      const MONTHS_FULL = {
+        de: ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"],
+        en: ["January","February","March","April","May","June","July","August","September","October","November","December"],
+      };
+      const MONTHS_ABBR = {
+        de: ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"],
+        en: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+      };
+      const STR = {
+        de: { title: "Globale Temperaturabweichung " + startYear + "–" + endYear,
+              caption: "NASA GISTEMP v4" + DOT + "Basis 1951–1980" + DOT + "monatlich",
+              record: "Höchstwert" },
+        en: { title: "Global Temperature Anomaly " + startYear + "–" + endYear,
+              caption: "NASA GISTEMP v4" + DOT + "Baseline 1951–1980" + DOT + "monthly",
+              record: "Record" },
+      }[LANG];
+      const ringFmt = (v) => "+" + (v % 1 === 0 ? v.toFixed(0) : num(v, 1)) + " °C";
+      const endBig = signed(lastVal, 2) + " °C";
+      const endSub = MONTHS_FULL[LANG][lastMonth - 1] + " " + lastYear + DOT +
+                     STR.record + " " + signed(peakVal, 2) + " °C (" +
+                     MONTHS_ABBR[LANG][peakMonth - 1] + " " + peakYear + ")";
+      // write localized DOM text
+      const drp = DATA_RETRIEVED.split("-");   // [YYYY, MM, DD] — deterministic string build
+      const dataAsOf = LANG === "de"
+        ? "Datenstand " + drp[2] + "." + drp[1] + "." + drp[0]
+        : "data as of " + DATA_RETRIEVED;
+      document.querySelector("#title .inner").textContent = STR.title;
+      document.querySelector("#caption .inner").textContent = STR.caption + DOT + dataAsOf;
+      document.querySelector("#endlabel .big").textContent = endBig;
+      document.querySelector("#endlabel .sub").textContent = endSub;
+      document.documentElement.lang = LANG;
+
+      // ---- diverging colormap by temperature value (0 = white, cold = blue, warm = red) ----
+      const CMAP = [
+        [-0.85, [0.086, 0.235, 0.520]],
+        [-0.45, [0.184, 0.470, 0.780]],
+        [-0.15, [0.420, 0.700, 0.870]],
+        [ 0.00, [0.945, 0.960, 0.975]],
+        [ 0.20, [0.975, 0.800, 0.360]],
+        [ 0.50, [0.949, 0.553, 0.180]],
+        [ 0.80, [0.910, 0.298, 0.118]],
+        [ 1.10, [0.871, 0.137, 0.110]],
+        [ 1.50, [0.706, 0.063, 0.063]],
+      ];
+      function vcolor(v) {
+        if (v <= CMAP[0][0]) return CMAP[0][1];
+        if (v >= CMAP[CMAP.length-1][0]) return CMAP[CMAP.length-1][1];
+        for (let i = 0; i < CMAP.length - 1; i++) {
+          const a = CMAP[i], b = CMAP[i+1];
+          if (v >= a[0] && v <= b[0]) {
+            const u = (v - a[0]) / (b[0] - a[0]);
+            return [lerp(a[1][0],b[1][0],u), lerp(a[1][1],b[1][1],u), lerp(a[1][2],b[1][2],u)];
+          }
+        }
+        return [1,1,1];
+      }
+      const vhex = (v) => { const c = vcolor(v); return new THREE.Color(c[0], c[1], c[2]); };
+      const vcss = (v) => { const c = vcolor(v); return `rgb(${Math.round(c[0]*255)},${Math.round(c[1]*255)},${Math.round(c[2]*255)})`; };
+
+      // ---- precompute geometry per month ----
+      const baseX = new Float32Array(N);
+      const baseZ = new Float32Array(N);
+      const yFull = new Float32Array(N);
+      const colArr = new Float32Array(N * 3);
+      for (let i = 0; i < N; i++) {
+        const m = (i % 12) + 1;
+        const th = -((m - 1) / 12 * Math.PI * 2); // Jan at top, clockwise
+        const r = rho(V[i]);
+        baseX[i] = r * Math.sin(th);
+        baseZ[i] = r * Math.cos(th);
+        yFull[i] = (i / (N - 1)) * HFUN;
+        const c = vcolor(V[i]);
+        colArr[3*i] = c[0]; colArr[3*i+1] = c[1]; colArr[3*i+2] = c[2];
+      }
+
+      // ---- renderer / scene / camera ----
+      const canvas = document.getElementById("three-layer");
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+      renderer.setPixelRatio(1);
+      renderer.setSize(W, H_PX, false);
+      renderer.setClearColor(0x000000, 1);
+
+      const scene = new THREE.Scene();
+      const aspect = W / H_PX;
+      const FOV = PORTRAIT ? 40 : 42;
+      const camera = new THREE.PerspectiveCamera(FOV, aspect, 0.1, 200);
+      const CAM_DIST = PORTRAIT ? 21 : 13;
+
+      // ---- spiral (fat line, vertex-colored) ----
+      const spiralMat = new THREE.LineMaterial({ linewidth: PORTRAIT ? 3.6 : 4.3, vertexColors: true, transparent: true, opacity: 1 });
+      spiralMat.resolution.set(W, H_PX);
+      const spiralGeo = new THREE.LineGeometry();
+      // Build the FULL geometry ONCE (flat, y=0). Build-up via instanceCount, funnel via
+      // in-place mutation of the interleaved buffer (repeated setPositions() does NOT
+      // re-upload reliably across many seeks in one page).
+      const fullPos = new Float32Array(N * 3);
+      for (let i = 0; i < N; i++) { fullPos[3*i] = baseX[i]; fullPos[3*i+1] = 0; fullPos[3*i+2] = baseZ[i]; }
+      spiralGeo.setPositions(fullPos);
+      spiralGeo.setColors(colArr);
+      const spiral = new THREE.Line2(spiralGeo, spiralMat);
+      spiral.frustumCulled = false;
+      spiral.renderOrder = 3;
+      spiral.visible = false;
+      scene.add(spiral);
+      const instPos = spiralGeo.attributes.instanceStart.data; // interleaved, (N-1)*6 floats
+
+      // ---- reference rings (flat, on floor y=0) ----
+      function circlePts(radius, seg = 160) {
+        const a = [];
+        for (let i = 0; i <= seg; i++) {
+          const th = i / seg * Math.PI * 2;
+          a.push(radius * Math.sin(th), 0, radius * Math.cos(th));
+        }
+        return a;
+      }
+      function makeRing(radius, color, { dashed = false, opacity = 0.8, lw = 2 } = {}) {
+        const g = new THREE.LineGeometry();
+        g.setPositions(circlePts(radius));
+        const m = new THREE.LineMaterial({ color, linewidth: lw, transparent: true, opacity, dashed, dashSize: 0.24, gapSize: 0.18 });
+        m.resolution.set(W, H_PX);
+        const l = new THREE.Line2(g, m);
+        if (dashed) l.computeLineDistances();
+        l.renderOrder = 2;
+        scene.add(l);
+        return l;
+      }
+      // 0 = white baseline; 0.5/1/1.5/2 take the line's colour at that temperature
+      const RING_DEFS = [
+        { v: 0.0, color: 0xffffff,   dashed: false, base: 0.55, lw: 1.8, label: "0 °C", lcolor: "#ffffff" },
+        { v: 0.5, color: vhex(0.5),  dashed: false, base: 0.65, lw: 2.0, label: ringFmt(0.5), lcolor: vcss(0.5) },
+        { v: 1.0, color: vhex(1.0),  dashed: false, base: 0.70, lw: 2.2, label: ringFmt(1.0), lcolor: vcss(1.0) },
+        { v: 1.5, color: vhex(1.5),  dashed: true,  base: 0.85, lw: 2.6, label: ringFmt(1.5), lcolor: vcss(1.5) },
+        { v: 2.0, color: vhex(2.0),  dashed: true,  base: 0.85, lw: 2.6, label: ringFmt(2.0), lcolor: vcss(2.0) },
+      ];
+      const rings = RING_DEFS.map(d => ({
+        l: makeRing(rho(d.v), d.color, { dashed: d.dashed, opacity: d.base, lw: d.lw }),
+        base: d.base,
+        v: d.v,
+      }));
+
+      // ---- 3D guide-wall cylinder (single leading wall, additive glow like the web app) ----
+      // AdditiveBlending + opacity 0.11 makes the wall clearly readable against black (the old
+      // ~0.02-0.028 non-additive walls were nearly invisible). Only the wall for the active
+      // RENDER_MODE is built; the other rings' walls are intentionally omitted to keep the focus.
+      function makeCyl(radius, color, baseOp) {
+        const g = new THREE.CylinderGeometry(radius, radius, 1, 120, 1, true);
+        const m = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending });
+        const mesh = new THREE.Mesh(g, m);
+        mesh.renderOrder = 1; mesh.visible = false;
+        scene.add(mesh);
+        return { mesh, baseOp };
+      }
+      // cyl15: the +1.5 °C anomaly wall.  paris: the Paris-1.5 wall at +1.31 °C (copper), replacing it.
+      const CYL_DEFS = {
+        cyl15: { r: rho(1.5),               color: vhex(1.5),                   op: 0.11 },
+        paris: { r: rho(1.5 - PARIS_OFFSET), color: new THREE.Color(0xE9B863),  op: 0.11 },
+      };
+      const _cd = CYL_DEFS[RENDER_MODE];
+      const cyls = [ makeCyl(_cd.r, _cd.color, _cd.op) ];
+
+      // ---- text sprites ----
+      // Every text sprite carries a redraw() closure so its canvas texture can be regenerated once
+      // the webfonts finish loading (see the font-ready gate in renderAt). A dark stroke + soft glow
+      // is baked into the canvas so labels stay legible over the bright spiral lines and background.
+      const textSprites = [];
+      const DM_SANS = '"DM Sans", system-ui, Arial, sans-serif';
+      const PLEX_MONO = '"IBM Plex Mono", ui-monospace, monospace';
+      function drawSpriteCanvas(text, o) {
+        const font = `${o.weight} ${o.fontPx}px ${o.family}`;
+        const meas = document.createElement("canvas").getContext("2d");
+        meas.font = font;
+        const pad = 34;
+        const w = Math.ceil(meas.measureText(text).width) + pad * 2;
+        const h = o.fontPx + pad * 2;
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        const ctx = c.getContext("2d");
+        ctx.font = font; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        // baked dark outline + soft glow for legibility (mirrors the web-app label halo)
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = "rgba(6,5,4,0.95)";
+        ctx.lineWidth = Math.max(3, o.fontPx * 0.11);
+        ctx.shadowColor = "rgba(6,5,4,0.95)";
+        ctx.shadowBlur = o.fontPx * 0.28;
+        ctx.strokeText(text, w / 2, h / 2);
+        ctx.shadowBlur = 0;
+        ctx.strokeText(text, w / 2, h / 2);
+        ctx.fillStyle = o.color;
+        ctx.fillText(text, w / 2, h / 2);
+        return { c, w, h };
+      }
+      function makeTextSprite(text, opts = {}) {
+        const o = Object.assign({ fontPx: 76, color: "#ffffff", weight: "700", baseH: 0.62, family: DM_SANS }, opts);
+        const first = drawSpriteCanvas(text, o);
+        const tex = new THREE.CanvasTexture(first.c);
+        tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+        const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false });
+        const sp = new THREE.Sprite(mat);
+        sp.scale.set(o.baseH * (first.w / first.h), o.baseH, 1);
+        sp.renderOrder = 5;
+        scene.add(sp);
+        sp.userData.redraw = () => {
+          const r = drawSpriteCanvas(text, o);
+          const ntex = new THREE.CanvasTexture(r.c);
+          ntex.minFilter = THREE.LinearFilter; ntex.magFilter = THREE.LinearFilter; ntex.generateMipmaps = false;
+          if (mat.map) mat.map.dispose();
+          mat.map = ntex; mat.needsUpdate = true;
+          sp.scale.set(o.baseH * (r.w / r.h), o.baseH, 1);
+        };
+        textSprites.push(sp);
+        return sp;
+      }
+      let spritesFresh = false;   // flips true once webfonts are loaded and every sprite has been redrawn
+
+      // month labels around the outside, on the floor plane (DM Sans)
+      const MONTHS = MONTHS_ABBR[LANG];        // 3-letter, localized
+      const monthR = rho(2.0) + 0.66;
+      const monthSprites = MONTHS.map((mn, idx) => {
+        const th = -(idx / 12 * Math.PI * 2);
+        const sp = makeTextSprite(mn, { fontPx: 60, color: "#9aa3ad", weight: "600", baseH: 0.42, family: DM_SANS });
+        sp.position.set(monthR * Math.sin(th), 0.001, monthR * Math.cos(th));
+        return sp;
+      });
+
+      // Ring labels (IBM Plex Mono) fanned by equal arc-length so inner rings get a wider angular
+      // step (no overlap), and centred on RING_FAN_C — the azimuth that faces the camera AFTER the
+      // end tilt/rotation, so the labels sit in front of / beside the funnel instead of behind it.
+      // See setCamera(): at the final frame the camera looks from az≈0.72 rad, whose near-side
+      // floor azimuth is π+0.72 ≈ 3.86 rad. Positions are static; only opacity animates.
+      const RING_FAN_C = 3.86;
+      const _fanRaw = [];
+      { let acc = 0; for (let i = 0; i < RING_DEFS.length; i++) { if (i > 0) acc += 1.334 / rho(RING_DEFS[i].v); _fanRaw.push(acc); } }
+      const _fanMid = (_fanRaw[0] + _fanRaw[_fanRaw.length - 1]) / 2;
+      const ringLabels = RING_DEFS.map((d, i) => {
+        const sp = makeTextSprite(d.label, { fontPx: 64, color: d.lcolor, weight: "500", baseH: 0.5, family: PLEX_MONO });
+        const r = rho(d.v);
+        const az = RING_FAN_C + (_fanRaw[i] - _fanMid);
+        sp.position.set(r * Math.sin(az), 0.02, r * Math.cos(az));
+        sp.userData.radius = r; sp.userData.az = az; sp.userData.v = d.v;
+        return sp;
+      });
+
+      // ---- Paris-Agreement inner ring pair (RENDER_MODE "paris" only) ----
+      // Our anomaly rings are vs 1951-1980; the Paris 1.5/2.0 pre-industrial limits sit PARIS_OFFSET
+      // further IN, i.e. at +1.31 °C and +1.81 °C on our scale. Distinct dashed rings + copper/red
+      // labels, fanned + haloed like the scale labels, kept clear of the scale-ring fan.
+      const PARIS_DEFS = [
+        { pv: 1.5, color: 0xE9B863, css: "#E9B863", az: 4.30, label: LANG === "de" ? "Paris 1,5 °C" : "Paris 1.5 °C" },
+        { pv: 2.0, color: 0xEF4444, css: "#EF4444", az: 3.95, label: LANG === "de" ? "Paris 2,0 °C" : "Paris 2.0 °C" },
+      ];
+      const parisRings = PARIS_DEFS.map(cfg => {
+        const r = rho(cfg.pv - PARIS_OFFSET);
+        const g = new THREE.LineGeometry();
+        g.setPositions(circlePts(r));
+        const m = new THREE.LineMaterial({ color: cfg.color, linewidth: 2.0, transparent: true, opacity: 0, dashed: true, dashSize: 0.16, gapSize: 0.14 });
+        m.resolution.set(W, H_PX);
+        const l = new THREE.Line2(g, m); l.computeLineDistances(); l.renderOrder = 2; l.visible = false;
+        scene.add(l);
+        const lab = makeTextSprite(cfg.label, { fontPx: 62, color: cfg.css, weight: "500", baseH: 0.5, family: PLEX_MONO });
+        lab.position.set(r * Math.sin(cfg.az), 0.02, r * Math.cos(cfg.az));
+        lab.material.opacity = 0; lab.visible = false;
+        return { l, lab };
+      });
+
+      // ---- comet head + glow ----
+      function glowTexture() {
+        const s = 128, c = document.createElement("canvas");
+        c.width = c.height = s;
+        const g = c.getContext("2d");
+        const grad = g.createRadialGradient(s/2, s/2, 0, s/2, s/2, s/2);
+        grad.addColorStop(0.0, "rgba(255,255,255,1)");
+        grad.addColorStop(0.25, "rgba(255,255,255,0.75)");
+        grad.addColorStop(1.0, "rgba(255,255,255,0)");
+        g.fillStyle = grad; g.fillRect(0, 0, s, s);
+        return new THREE.CanvasTexture(c);
+      }
+      const gtex = glowTexture();
+      const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: gtex, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false }));
+      glow.scale.set(1.15, 1.15, 1); glow.renderOrder = 6; scene.add(glow);
+      const head = new THREE.Sprite(new THREE.SpriteMaterial({ map: gtex, transparent: true, opacity: 1, depthTest: false, depthWrite: false }));
+      head.scale.set(0.34, 0.34, 1); head.renderOrder = 7; scene.add(head);
+
+      // ---- camera rig as a function of tilt param k (and hold rotation) ----
+      function setCamera(kCam, holdP) {
+        const elev = lerp(88 * DEG, (PORTRAIT ? 30 : 36) * DEG, kCam);
+        const dist = lerp(CAM_DIST, CAM_DIST * (PORTRAIT ? 1.12 : 1.85), kCam);
+        const targetY = lerp(0, HFUN * 0.5, kCam);
+        const horiz = dist * Math.cos(elev);
+        const vert  = dist * Math.sin(elev);
+        const az = holdP * 0.72;                  // longer, calmer end rotation
+        const camX = -horiz * Math.sin(az);
+        const camZ = -horiz * Math.cos(az);
+        camera.up.set(0, 1, 0);
+        camera.position.set(camX, targetY + vert, camZ);
+        camera.lookAt(0, targetY, 0);
+      }
+
+      // ---- per-frame state from time ----
+      let lastKy = -1;
+      function updateSpiral(nVisible, k) {
+        spiral.visible = nVisible >= 2;
+        spiralGeo.instanceCount = Math.max(0, nVisible - 1);
+        if (k !== lastKy) {
+          lastKy = k;
+          const a = instPos.array;
+          for (let i = 0; i < N - 1; i++) {
+            a[6*i + 1] = k * yFull[i];
+            a[6*i + 4] = k * yFull[i + 1];
+          }
+          instPos.needsUpdate = true;
+        }
+      }
+
+      function renderAt(time) {
+        // Font-ready gate: once both webfonts report loaded, redraw every text sprite so the final
+        // texture uses the real font (never the fallback). document.fonts.check() is synchronous and
+        // deterministic; the render engine only begins capturing after document.fonts.ready, so the
+        // first captured frame already passes this check and all frames render with the correct font.
+        if (!spritesFresh && document.fonts && document.fonts.check &&
+            document.fonts.check('500 54px "IBM Plex Mono"') &&
+            document.fonts.check('600 60px "DM Sans"')) {
+          for (const s of textSprites) s.userData.redraw();
+          spritesFresh = true;
+        }
+
+        const t = clamp01(time / DURATION);
+        const introP = clamp01(t / T_INTRO);
+        const buildLin = clamp01((t - T_INTRO) / (T_BUILD_END - T_INTRO));
+        const buildP = 1 - Math.pow(1 - buildLin, BUILD_DECAY);   // decelerate toward the present
+        const kRaw = clamp01((t - T_BUILD_END) / (T_TILT_END - T_BUILD_END));
+        const kCam = easeInOut(kRaw);
+        const holdP = clamp01((t - T_TILT_END) / (1 - T_TILT_END));
+
+        const nVisible = Math.max(1, Math.min(N, 1 + Math.round(buildP * (N - 1))));
+        const li = nVisible - 1;
+        const k = kCam;
+
+        updateSpiral(nVisible, k);
+
+        const hx = baseX[li], hy = k * yFull[li], hz = baseZ[li];
+        head.position.set(hx, hy, hz);
+        glow.position.set(hx, hy, hz);
+        const headVis = introP * (1 - 0.85 * holdP);
+        head.material.opacity = headVis;
+        glow.material.opacity = 0.55 * headVis;
+
+        // Exclusive scale/Paris display: in "paris" mode the +0.5…+2 anomaly rings are hidden
+        // entirely (not dimmed); only the neutral 0 °C baseline ring stays — it is the reference
+        // that both the scale rings and the Paris limit rings are measured against. cyl15 shows all.
+        const parisMode = RENDER_MODE === "paris";
+        for (const r of rings) {
+          const shown = r.v === 0 || !parisMode;
+          r.l.visible = shown;
+          r.l.material.opacity = shown ? r.base * introP : 0;
+        }
+
+        for (const c of cyls) {
+          const hgt = Math.max(0.0001, k * HFUN);
+          c.mesh.scale.set(1, hgt, 1);
+          c.mesh.position.y = hgt / 2;
+          c.mesh.material.opacity = c.baseOp * kCam * introP;
+          c.mesh.visible = kCam > 0.002;
+        }
+
+        // Scale-ring labels stay on their fanned near-camera azimuth (positions are static) and
+        // remain visible through the end tilt. In "paris" mode the +0.5…+2 labels are hidden
+        // entirely (exclusive display); only the neutral "0 °C" baseline label stays.
+        for (const lb of ringLabels) {
+          const shown = lb.userData.v === 0 || !parisMode;
+          lb.visible = shown;
+          lb.material.opacity = shown ? introP * 0.95 : 0;
+        }
+        // Paris inner ring pair + labels — only in "paris" mode.
+        for (const pr of parisRings) {
+          pr.l.visible = parisMode;
+          pr.l.material.opacity = parisMode ? 0.85 * introP : 0;
+          pr.lab.visible = parisMode;
+          pr.lab.material.opacity = parisMode ? 0.95 * introP : 0;
+        }
+        const monthOp = introP * (1 - 0.55 * kCam);
+        for (const sp of monthSprites) sp.material.opacity = monthOp;
+
+        const yr = 1880 + Math.floor(li / 12);
+        const yEl = document.querySelector("#year .inner");
+        if (yEl.textContent !== String(yr)) yEl.textContent = String(yr);
+
+        setCamera(kCam, holdP);
+        renderer.render(scene, camera);
+      }
+
+      window.addEventListener("hf-seek", (e) => renderAt(e.detail.time));
+      renderAt(window.__hfThreeTime || 0);
+    </script>
+  </body>
+</html>
